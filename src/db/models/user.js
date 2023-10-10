@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
 const bcryptjs = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const url = "mongodb://127.0.0.1:27017/task-manager-api";
 mongoose.connect(url);
@@ -38,7 +39,26 @@ const schema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  tokens: [
+    {
+      token: {
+        type: String,
+        required: true,
+      },
+    },
+  ],
 });
+
+schema.methods.generateAuthToken = async function () {
+  const user = this;
+
+  const token = jwt.sign({ _id: user._id.toString() }, "thisisacourse");
+
+  user.tokens = user.tokens.concat({ token });
+  await user.save();
+
+  return token;
+};
 
 schema.statics.findByCredentials = async (email, password) => {
   const user = await User.findOne({ email });
@@ -53,7 +73,6 @@ schema.statics.findByCredentials = async (email, password) => {
 
   return user;
 };
-
 
 schema.pre("save", async function (next) {
   const user = this;

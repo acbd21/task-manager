@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const validator = require("validator");
 const bcryptjs = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const Task = require("./task");
 
 const url = "mongodb://127.0.0.1:27017/task-manager-api";
 mongoose.connect(url);
@@ -60,6 +61,22 @@ schema.methods.generateAuthToken = async function () {
   return token;
 };
 
+schema.virtual("tasks", {
+  ref: "Task",
+  localField: "_id",
+  foreignField: "owner",
+});
+
+schema.methods.toJSON = function () {
+  const user = this;
+  const userObject = user.toObject();
+
+  delete userObject.password;
+  delete userObject.tokens;
+
+  return userObject;
+};
+
 schema.statics.findByCredentials = async (email, password) => {
   const user = await User.findOne({ email });
   if (!user) {
@@ -80,6 +97,13 @@ schema.pre("save", async function (next) {
   if (user.isModified("password")) {
     user.password = await bcryptjs.hash(user.password, 8);
   }
+
+  next();
+});
+
+schema.pre("deleteOne", async function (next) {
+  const id = this._conditions._id;
+  const tasks = await Task.deleteMany({ owner: id })
 
   next();
 });

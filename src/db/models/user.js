@@ -7,48 +7,56 @@ const Task = require("./task");
 const url = "mongodb://127.0.0.1:27017/task-manager-api";
 mongoose.connect(url);
 
-const schema = new mongoose.Schema({
-  email: {
-    type: String,
-    required: true,
-    trim: true,
-    lowercase: true,
-    unique: true,
-    validate(value) {
-      if (!validator.isEmail(value)) {
-        throw new Error("email is invalid");
-      }
-    },
-  },
-  password: {
-    type: String,
-    trim: true,
-    required: true,
-    minLength: 6,
-    validate(value) {
-      if (value.includes("password")) {
-        throw new Error("Password cannot be 'password'");
-      }
-    },
-  },
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  age: {
-    type: Number,
-    default: 0,
-  },
-  tokens: [
-    {
-      token: {
-        type: String,
-        required: true,
+const schema = new mongoose.Schema(
+  {
+    email: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+      unique: true,
+      validate(value) {
+        if (!validator.isEmail(value)) {
+          throw new Error("email is invalid");
+        }
       },
     },
-  ],
-});
+    password: {
+      type: String,
+      trim: true,
+      required: true,
+      minLength: 6,
+      validate(value) {
+        if (value.includes("password")) {
+          throw new Error("Password cannot be 'password'");
+        }
+      },
+    },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    age: {
+      type: Number,
+      default: 0,
+    },
+    tokens: [
+      {
+        token: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
+    avatar: {
+      type: Buffer
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
 schema.methods.generateAuthToken = async function () {
   const user = this;
@@ -71,6 +79,7 @@ schema.methods.toJSON = function () {
   const user = this;
   const userObject = user.toObject();
 
+  delete userObject.avatar;
   delete userObject.password;
   delete userObject.tokens;
 
@@ -103,7 +112,7 @@ schema.pre("save", async function (next) {
 
 schema.pre("deleteOne", async function (next) {
   const id = this._conditions._id;
-  const tasks = await Task.deleteMany({ owner: id })
+  const tasks = await Task.deleteMany({ owner: id });
 
   next();
 });
